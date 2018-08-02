@@ -8,14 +8,45 @@ library(tidyr)
 library("survival")
 library("survminer")
 
-
+load("table2.RData") # this is version with screen included, so need to use original version from table 1 
 load("table1.RData")
-load("table2.RData") 
 load("person_year.RData")
-## Select population with at least three month 
+load("APP&MD dates.RData")
+rm(APP_date, MD_date)
+
+
+table2 = mutate(table2, AC = 1*(Patid %in% AC_patid), 
+                Hepatitis_C = 1*(Patid %in% Hepatitis_C_patid), 
+                Non_alcohol = 1*(Patid %in% Non_alcohol_patid), 
+                Cirrhosis_complication = 1*(Patid %in% Cirrhosis_complication_patid), 
+                HE = 1*(Patid %in% HE_patid), 
+                Ascites = 1*(Patid %in% Ascites_patid), 
+                Varices = 1*(Patid %in% Varices_patid),
+                Gastro = 1*(Patid %in% Gastro_patid),
+                Gastro_only = 1*(Patid %in% Gastro_only_patid), 
+                Hepatology = 1*(Patid %in% Hepatology_patid),
+                Hepatology_only = 1*(Patid %in% Hepatology_only_patid),
+                SBP = 1*(Patid %in% SBP_patid), 
+                Transplant_Evaluation = 1*(Patid %in% Transplant_Evaluation_patid), 
+                TIPS = 1*(Patid %in% TIPS_patid), 
+                HCC = 1*(Patid %in% HCC_patid), 
+                Pneumonia = 1*(Patid %in% Pneumonia_patid), 
+                Sepsis = 1*(Patid %in% Sepsis_patid), 
+                Urinary_tract_infection = 1*(Patid %in% Urinary_tract_infection_patid), 
+                Cellulitis = 1*(Patid %in% Cellulitis_patid), 
+                Bacteremia = 1*(Patid %in% Bacteremia_patid), 
+                Clostridium = 1*(Patid %in% Clostridium_patid), 
+                Cholangitis = 1*(Patid %in% Cholangitis_patid), 
+                Paracentesis = 1*(Patid %in% Paracentesis_patid), 
+                Dialysis = 1*(Patid %in% Dialysis_patid))
+
+rm(APP_MD_date)
+
+
+
 temp = select(Person_year, Patid, Death_date, Trans_Dt)
 table2 = merge(table2, temp, by = "Patid", all.x = T)
-table2 = filter(table2, Denominator >= 0.5) # at least 6 months coverage after APP date
+table2 = filter(table2, Denominator >= 1) # at least 6 months coverage after APP date
 
 
 # 2: death 1: censor 3: transplant
