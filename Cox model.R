@@ -98,7 +98,8 @@ res.cox <- coxph(Surv(time, Status) ~ Race, data = table2)
 summary(res.cox)
 
 # multivariate 
-res.cox <- coxph(Surv(time, Status) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit, data = table2)
+res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+APP+Gastro_only+Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit,
+                 data = table2)
 x = data.frame(summary(res.cox)$conf.int)
 x$exp..coef. = NULL 
 x = mutate(x, lower..95 = round(lower..95, digits = 3), upper..95 = round(upper..95, digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
@@ -116,12 +117,13 @@ table2 = table2 %>%
 
 
 library(cmprsk2)
-output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+Shared_visit+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis,
+output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+Gastro_only+Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit+Shared_visit,
            data = table2)
 
 x = summary(output1)
-write.csv(x$`CRR: 2`, file = "tempfile.csv")
-write.csv(x$`CRR: 3`, file = "tempfile.csv")
+write.csv(x$`CRR: 2`, file = "tempfile death group.csv")
+write.csv(x$`CRR: 3`, file = "tempfile tranplant group.csv")
+rm(x,res,output)
 
 
 # No shared visit 
