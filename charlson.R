@@ -2,9 +2,6 @@
 setwd("X:/Shengchen Hao/Tapper Liver/R file/new") 
 library(medicalrisk)
 library(plyr)
-library(foreach) 
-library(parallel)
-library(doParallel)
 library(stringr)
 library(comorbidity)
 
