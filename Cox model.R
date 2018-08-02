@@ -47,7 +47,7 @@ rm(APP_MD_date)
 temp = select(Person_year, Patid, Death_date, Trans_Dt)
 table2 = merge(table2, temp, by = "Patid", all.x = T)
 table2 = filter(table2, Denominator >= 1) # at least 6 months coverage after APP date
-
+rm(temp)
 
 # 2: death 1: censor 3: transplant
 table2 = table2 %>%
@@ -97,24 +97,15 @@ write.csv(temp, file = "tempfile.csv")
 res.cox <- coxph(Surv(time, Status) ~ Race, data = table2)
 summary(res.cox)
 
-# multivariate (with shared visit)
-res.cox <- coxph(Surv(time, Status) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+Shared_visit+Transplant_Evaluation+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis, data = table2)
+# multivariate 
+res.cox <- coxph(Surv(time, Status) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit, data = table2)
 x = data.frame(summary(res.cox)$conf.int)
 x$exp..coef. = NULL 
 x = mutate(x, lower..95 = round(lower..95, digits = 3), upper..95 = round(upper..95, digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
 x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
+
 write.csv(x, file = "tempfile.csv")
 rm(x, temp)
-
-# multivariate (without shared visit)
-res.cox <- coxph(Surv(time, Status) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+Transplant_Evaluation+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis, data = table2)
-x = data.frame(summary(res.cox)$conf.int)
-x$exp..coef. = NULL 
-x = mutate(x, lower..95 = round(lower..95, digits = 3), upper..95 = round(upper..95, digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
-x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
-write.csv(x, file = "tempfile.csv")
-rm(res.cox, x, univ_models,univ_formulas,univ_results)
-gc()
 
 # competing risk 
 #devtools::install_github('raredd/cmprsk2')
@@ -125,8 +116,8 @@ table2 = table2 %>%
 
 
 library(cmprsk2)
-output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+Shared_visit+Transplant_Evaluation+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis,
-           data = table2, variance = F)
+output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+Shared_visit+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis,
+           data = table2)
 
 x = summary(output1)
 write.csv(x$`CRR: 2`, file = "tempfile.csv")
@@ -134,12 +125,12 @@ write.csv(x$`CRR: 3`, file = "tempfile.csv")
 
 
 # No shared visit 
-output2 <- crr2(Surv(time, Status(1)== 2) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+Transplant_Evaluation+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis,
+output2 <- crr2(Surv(time, Status(1)== 2) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+ Gastro_only+ Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis,
                data = table2, variance = F)
 
 x = summary(output2)
-write.csv(x$`CRR: 2`, file = "tempfile.csv")
-write.csv(x$`CRR: 3`, file = "tempfile.csv")
+write.csv(x$`CRR: 2`, file = "tempfile death group.csv")
+write.csv(x$`CRR: 3`, file = "tempfile tranplant group.csv")
 rm(x,res,output)
 
 
