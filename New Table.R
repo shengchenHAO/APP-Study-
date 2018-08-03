@@ -93,5 +93,5 @@ Count_table2 = Count_table %>%
   )
 
 Count_table2 = filter(Count_table2, HCC == 1)
-apply(Count_table1, 2, sum)
+apply(Count_table2, 2, sum)
 
