@@ -829,7 +829,7 @@ define = function(data){
 }
 
 # Run over all 
-for (year in 2009:2015){
+for (year in 2001:2015){
   name = paste0("data_censor_", year, ".RData") 
   load(name) 
   temp_data = mutate(temp_data, Fst_Dt = as.Date(Fst_Dt, "%Y-%m-%d"), Lst_Date = as.Date(Lst_Date, "%Y-%m-%d"))
