@@ -719,6 +719,38 @@ varice_band_treat = function(data){
   return(temp)
 }
 
+# Updating nnew variables 2018-08-02 
+SBRT = function(data){
+  temp = mutate(data, SBRT = 1*(grepl("77373|77435|77345", Proc) & Fst_Dt < Lst_Date))
+  return(temp) 
+}
+
+TACE = function(data){
+  temp = mutate(data, TACE = 1*(grepl("37204|75894", Proc) & Fst_Dt < Lst_Date))
+  return(temp) 
+}
+
+Ablation = function(data){
+  temp = mutate(data, Ablation = 1*( (grepl("47380|47381|47382|47370|47371", Proc) | grepl("^5023|^5024|^5025|^5026", Diag)) & Fst_Dt < Lst_Date))
+  return(temp)
+}
+
+RFA = function(data){
+  temp = mutate(data, RFA = 1*(grepl("47370|47380|47382", Proc) & Fst_Dt < Lst_Date)) 
+  return(temp)
+}
+
+Cryo = function(data){
+  temp = mutate(data, Cryo = 1*(grepl("47371|47381|47383", Proc) & Fst_Dt < Lst_Date))
+  return(temp)
+}
+
+liver_resection = function(data){
+  temp = mutate(data, liver_resection = 1*((grepl("^503", Diag) | grepl("47120|47122|47125|47130", Proc)) & Fst_Dt < Lst_Date), # separate partial hepatectomy
+                partial_hep = 1*(grepl("^5022", Diag) & Fst_Dt < Lst_Date))
+  return(temp)
+}
+
 define = function(data){
   output = data %>% 
     Cirrhosis_all() %>%
@@ -796,80 +828,6 @@ define = function(data){
   return(output)
 }
 
-define1 = function(data){
-  output = data %>% 
-    Cirrhosis_all() %>%
-
-    Cirrhosis_without() %>%
-  
-    Varices() %>% 
-  
-    Ascites() %>% 
-  
-    Spontaneous_Bacterial_Peritonitis() %>%
-
-    TIPS() %>% 
-
-    Alcoholic_cirrhosis() %>%
-    
-    Alcoholic_liver_disease() %>%
-    
-    Alcohol_use() %>% 
-
-    Hepatitis_C() %>% 
-
-    Hepatitis_B() %>%
-
-    Non_alcohol()
-  
-  
-  return(output)
-}
-
-define2 = function(data){
-  output = data %>% 
-    
-    HCC() %>%
-    
-    Band_ligation() %>%
-    
-    vaccine() %>%
-    
-    varice_band_treat() %>%
-    
-    cancer_screen() %>%
-    
-    HE() %>%
-    
-    outpatient() %>%
-    
-    inpatient() %>% 
-    
-    Paracentesis() %>%
-    
-    Dialysis() %>% 
-    
-    Pneumonia() %>% 
-    
-    Sepsis() %>%
-    
-    Urinary_tract_infection() %>% 
-    
-    Cellulitis() %>% 
-    
-    Bacteremia() %>% 
-    
-    Clostridium() %>%
-    
-    Cholangitis() %>% 
-    
-    Transplant_evaluation() %>% 
-    
-    Endoscopy()
-  
-  return(output)
-}
-
 # Run over all 
 for (year in 2009:2015){
   name = paste0("data_censor_", year, ".RData") 
@@ -903,14 +861,23 @@ for (year in 2009:2015){
   
 }  
 
-# Run over all (temp back up)
+define2 = function(data){
+  output = data %>% 
+    Ablation() %>% 
+    Cryo() %>% 
+    liver_resection() %>% 
+    RFA() %>% 
+    SBRT() %>% 
+    TACE() 
+  return(output)
+}
+
+# Run over all (2018-08-02)
 for (year in 2001:2015){
   name = paste0("data_def_", year, ".RData") 
   load(name) 
   
-  temp_data = TIPS(temp_data) 
-  temp_data = vaccine(temp_data) 
-  temp_data = cancer_screen(temp_data)
+  
   
   save(temp_data, file = paste0("data_def_", year, ".RData")) 
   rm(temp_data, year, name) 
