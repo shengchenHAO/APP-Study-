@@ -877,7 +877,7 @@ for (year in 2001:2015){
   name = paste0("data_def_", year, ".RData") 
   load(name) 
   
-  
+  temp_data = define2(temp_data)
   
   save(temp_data, file = paste0("data_def_", year, ".RData")) 
   rm(temp_data, year, name) 
