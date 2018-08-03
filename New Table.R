@@ -32,3 +32,20 @@ for (year in 2001:2015){
   gc()
   
 }  
+
+
+Count_table = data.frame(liver_member_fixed$Patid) 
+colnames(Count_table) = "Patid" 
+
+Count_table = Count_table %>%  
+  mutate(HCC = 1*(Patid %in% HCC_patid), 
+         SBRT = 1*(Patid %in% SBRT_patid), 
+         TACE = 1*(Patid %in% TACE_patid),
+         Total_ablation = 1*(Patid %in% Total_ablation_patid), 
+         RFA = 1*(Patid %in% RFA_patid), 
+         Cryo = 1*(Patid %in% Cryo_patid), 
+         Hepatectomy = 1*(Patid %in% Hepatectomy_patid), 
+         liver_transplant = 1*(Patid %in% liver_transplant_patid)
+         )
+
+temp = filter(Count_table, HCC == 1)
