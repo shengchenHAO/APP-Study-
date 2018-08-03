@@ -21,7 +21,7 @@ for (year in 2001:2015){
   
   HCC_patid = c(HCC_patid, unique(filter(temp_data, HCC == 1)$Patid))
   SBRT_patid = c(SBRT_patid, unique(filter(temp_data, SBRT == 1)$Patid))
-  TACE_patid = c(TACE_patid, unique(filter(temp_data, TACE_patid)$Patid)) 
+  TACE_patid = c(TACE_patid, unique(filter(temp_data, TACE == 1)$Patid)) 
   Total_ablation_patid = c(Total_ablation_patid, unique(filter(temp_data, Ablation ==1 | RFA == 1 | Cryo == 1)$Patid))
   RFA_patid = c(RFA_patid, unique(filter(temp_data, RFA == 1)$Patid))
   Cryo_patid = c(Cryo_patid, unique(filter(temp_data, Cryo == 1)$Patid)) 
