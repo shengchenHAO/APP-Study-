@@ -65,8 +65,8 @@ table2 = mutate(table2, Race = ifelse(Race == "W", 1, ifelse(Race == "A",2, ifel
 
 # cox model #############
 
-covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "APP", "Gastro_only", "Hepatology", "Shared_visit", "Transplant_Evaluation", "SBP", "TIPS",
-"APP_Gastro", "APP_Hepatology","Pneumonia","Sepsis","Urinary_tract_infection","Cellulitis","Bacteremia","Clostridium","Cholangitis","Paracentesis","Dialysis")
+covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "APP", "Gastro_only", "Hepatology", "SBP", "TIPS",
+"APP_Gastro", "APP_Hepatology","Pneumonia","Sepsis","Urinary_tract_infection","Cellulitis","Bacteremia","Clostridium","Cholangitis","Paracentesis","Dialysis", "max_visit", "Shared_visit")
 univ_formulas <- sapply(covariates,
                         function(x) as.formula(paste('Surv(time, Status)~', x)))
 
@@ -91,21 +91,22 @@ univ_results <- lapply(univ_models,
                        })
 res <- t(as.data.frame(univ_results, check.names = FALSE))
 temp = as.data.frame(res)
-write.csv(temp, file = "tempfile.csv")
+write.csv(temp, file = "single var cox model.csv")
 
 # Race univariate
 res.cox <- coxph(Surv(time, Status) ~ Race, data = table2)
 summary(res.cox)
 
 # multivariate 
-res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+APP+Gastro_only+Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit,
+res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+APP+Gastro_only+Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit+Shared_visit,
                  data = table2)
 x = data.frame(summary(res.cox)$conf.int)
 x$exp..coef. = NULL 
+x$Var = rownames(x)
 x = mutate(x, lower..95 = round(lower..95, digits = 3), upper..95 = round(upper..95, digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
 x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
 
-write.csv(x, file = "tempfile.csv")
+write.csv(x, file = "multivariate cox.csv")
 rm(x, temp)
 
 # competing risk 
@@ -120,10 +121,28 @@ library(cmprsk2)
 output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+ Sex+ score + AC+ Hepatitis_C+ Non_alcohol+ Ascites+ Varices+ HE+ HCC+ APP+Gastro_only+Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit+Shared_visit,
            data = table2)
 
-x = summary(output1)
-write.csv(x$`CRR: 2`, file = "tempfile death group.csv")
-write.csv(x$`CRR: 3`, file = "tempfile tranplant group.csv")
-rm(x,res,output)
+# death group
+x = summary.crr(output1$`CRR: 2`)
+x = data.frame(x$conf.int)
+x$exp..coef. = NULL 
+x$Var = rownames(x)
+x = mutate(x, lower..95 = round(X2.5., digits = 3), upper..95 = round(X97.5., digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
+x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
+x[,1:3] = NULL 
+x[, 2:3] = NULL
+write.csv(x, file = "competing risk.csv")
+
+# transplant group 
+x = summary.crr(output1$`CRR: 3`)
+x = data.frame(x$conf.int)
+x$exp..coef. = NULL 
+x$Var = rownames(x)
+x = mutate(x, lower..95 = round(X2.5., digits = 3), upper..95 = round(X97.5., digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
+x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
+x[,1:3] = NULL 
+x[, 2:3] = NULL
+write.csv(x, file = "competing risk.csv")
+
 
 
 # No shared visit 
