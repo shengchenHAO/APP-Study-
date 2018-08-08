@@ -6,6 +6,7 @@ library(tidyr)
 
 
 # FIRST EXCLUDE BASED ON CODE BOOK 
+GI_visit = data.frame()
 for (year in 2001:2015){
   name = paste0("data_censor_", year, ".RData") 
   load(name) 
