@@ -42,7 +42,7 @@ for (year in 2001:2015){
   temp_data = mutate(temp_data, Bleeding = 1*(is.na(Bleed_date) == F & Fst_Dt >= Bleed_date & Fst_Dt < Lst_Date)) # create bleeding time varying variable
   
   Exclude_coverage_patid = unique(c(Exclude_coverage_patid, filter(temp_data, (Lst_Date - GI_first_date) < 365)$Patid))
-  Exclude_Transplant_patid = unique(c(filter(temp_data, is.na(Trans_Dt) == F & (Trans_Dt - GI_first_date) <= 90 )$Patid))
+  Exclude_Transplant_patid = unique(c(Exclude_Transplant_patid, filter(temp_data, is.na(Trans_Dt) == F & (Trans_Dt - GI_first_date) <= 90 )$Patid))
   Exclude_Bleeding_patid = unique(c(Exclude_Bleeding_patid, filter(temp_data, Fst_Dt <= GI_first_date + 90 & Bleeding == 1)$Patid)) 
   Exclude_HCC_patid = unique(c(Exclude_HCC_patid, filter(temp_data, Fst_Dt <= GI_first_date + 180 & HCC == 1)$Patid))
   
