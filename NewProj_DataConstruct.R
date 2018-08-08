@@ -25,8 +25,9 @@ GI_first_date = GI_visit %>%
   summarise(GI_first_date = first(Fst_Dt)) %>% 
   mutate(GI_first_date = as.Date(GI_first_date, "%Y-%m-%d"))
 
-save(c(GI_visit, GI_first_date), file = "GI_First_Date.RData")
+save.image("GI_First_Date.RData")
 temp_patid = unique(GI_first_date$Patid)
+rm(GI_visit) 
 
 Exclude_coverage_patid = c()
 Exclude_Transplant_patid = c() 
