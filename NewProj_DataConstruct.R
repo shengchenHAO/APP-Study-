@@ -1,4 +1,4 @@
-setwd("X:/Shengchen Hao/Tapper Liver/R file/new") 
+setwd("X:/Shengchen Hao/Tapper Liver/R file/new/GI_proj") 
 library(haven)  
 library(dplyr) 
 library(stringr) 
@@ -111,9 +111,14 @@ for (year in 2001:2015){
   load(name)  
   
   temp_data = merge(temp_data, Person_year, by = "Patid", all.x = T)
+  temp_data$YEAR_OF_DEATH = NULL 
+  temp_data$MONTH_OF_DEATH = NULL 
+  temp_data$First_Claim_Date = NULL 
   
   save(temp_data, file = paste0("data_", year, ".RData") ) 
   rm(temp_data,name,year) 
   gc()
 }
+
+
 
