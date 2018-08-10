@@ -59,32 +59,61 @@ Patid_total = unique(liver_member_fixed$Patid)
 '%!in%' = Negate('%in%')
 Patid_total = Patid_total[Patid_total %!in% Exclude_coverage_patid & Patid_total %!in% Exclude_Bleeding_patid & Patid_total %!in% Exclude_HCC_patid & Patid_total %!in% Exclude_Transplant_patid & Patid_total %in% GI_first_date$Patid]
 
-# get the data (def) for the patids above for one year after first GI
-data_total = data.frame()
+# DATA CONSTRUCTING 
+# medical
 for (year in 2001:2015){
-  name = paste0("data_def_", year, ".RData") 
-  load(name) 
+  name = paste0("X:/Shengchen Hao/Tapper Liver/Medical Files/liver_med_", year, ".sas7bdat") 
+  med = read_sas(name)  
   
-  temp_data = filter(temp_data, Patid %in% Patid_total)
-  temp_data = merge(temp_data, GI_first_date, by = "Patid", all.x = T)
-  temp_data = filter(temp_data, Fst_Dt >= GI_first_date & Fst_Dt <= GI_first_date + 365)
-  data_total = rbind(data_total, temp_data)
+  med =select(med, Patid, Dstatus, Fst_Dt, Pos, Proc_Cd, Prov)
+  colnames(med) = c("Patid", "Dstatus", "Fst_Dt", "Position", "Proc", "Provider")
   
-  rm(temp_data,name,year)
+  save(med, file = paste0("medical_", year,".RData") ) 
+  rm(med, name, year) 
+  gc()
+} 
+
+# diag 
+for(year in 2001:2015){
+  name = paste0("X:/Shengchen Hao/Tapper Liver/Medical Files/liver_diag_", year, ".sas7bdat") 
+  diag = read_sas(name)
+  
+  diag = select(diag, Patid, Diag, Fst_Dt)
+  
+  save(diag, file = paste0("diagnosis_", year,".RData") ) 
+  rm(diag, name, year) 
+  gc()
+} 
+
+CPT = function(data){
+  temp = data %>% 
+    group_by(Patid, Fst_Dt) %>%   
+    summarise(Diag = paste0(Diag, collapse = ",")) %>% 
+    ungroup() 
+  return(temp)
+}
+
+for (year in 2001:2015){
+  load(paste0("diagnosis_", year,".RData"))
+  load(paste0("medical_", year,".RData"))
+  
+  diag = CPT(diag) 
+  temp_data = merge(med, diag, by = c("Patid", "Fst_Dt"), all = T)  
+  
+  save(temp_data, file = paste0("data_", year, ".RData")) 
+  rm(diag,med,temp_data) 
   gc()
 }
-save(data_total, file = "one_year_data.RData")
 
-
-# get the prov id of Hepatology 
-liver_provider = read_sas("X:/Shengchen Hao/Tapper Liver/Miscellaneous Files/liver_provider.sas7bdat")
-
-# Gastro 
-code = "207RG0100X|207RI0008X|207RT0003X"
-Gastro_id = unique(filter(liver_provider, grepl(code, Taxonomy1)|grepl(code, Taxonomy2))$Prov)
-
-
-
-
-
+load("person_year.RData")
+for (year in 2001:2015){
+  name = paste0("data_", year, ".RData") 
+  load(name)  
+  
+  temp_data = merge(temp_data, Person_year, by = "Patid", all.x = T)
+  
+  save(temp_data, file = paste0("data_", year, ".RData") ) 
+  rm(temp_data,name,year) 
+  gc()
+}
 
