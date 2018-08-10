@@ -33,7 +33,7 @@ Exclude_coverage_patid = c()
 Exclude_Transplant_patid = c() 
 Exclude_Bleeding_patid = c() 
 Exclude_HCC_patid = c() 
-for (year in 2001:2015){
+for (year in 2001:2015){ # run in FLUX
   name = paste0("data_def_", year, ".RData") 
   load(name) 
   
@@ -50,3 +50,41 @@ for (year in 2001:2015){
   gc()
 }
 rm(temp_patid)
+
+save.image("output_Exclude.RData")
+
+# get the total patids included in study
+liver_member_fixed = read_sas("X:/Tapper Liver DOD/Member Files/liver_member_fixed.sas7bdat") 
+Patid_total = unique(liver_member_fixed$Patid)
+'%!in%' = Negate('%in%')
+Patid_total = Patid_total[Patid_total %!in% Exclude_coverage_patid & Patid_total %!in% Exclude_Bleeding_patid & Patid_total %!in% Exclude_HCC_patid & Patid_total %!in% Exclude_Transplant_patid & Patid_total %in% GI_first_date$Patid]
+
+# get the data (def) for the patids above for one year after first GI
+data_total = data.frame()
+for (year in 2001:2015){
+  name = paste0("data_def_", year, ".RData") 
+  load(name) 
+  
+  temp_data = filter(temp_data, Patid %in% Patid_total)
+  temp_data = merge(temp_data, GI_first_date, by = "Patid", all.x = T)
+  temp_data = filter(temp_data, Fst_Dt >= GI_first_date & Fst_Dt <= GI_first_date + 365)
+  data_total = rbind(data_total, temp_data)
+  
+  rm(temp_data,name,year)
+  gc()
+}
+save(data_total, file = "one_year_data.RData")
+
+
+# get the prov id of Hepatology 
+liver_provider = read_sas("X:/Shengchen Hao/Tapper Liver/Miscellaneous Files/liver_provider.sas7bdat")
+
+# Gastro 
+code = "207RG0100X|207RI0008X|207RT0003X"
+Gastro_id = unique(filter(liver_provider, grepl(code, Taxonomy1)|grepl(code, Taxonomy2))$Prov)
+
+
+
+
+
+
