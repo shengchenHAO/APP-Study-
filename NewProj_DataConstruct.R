@@ -57,7 +57,8 @@ save.image("output_Exclude.RData")
 liver_member_fixed = read_sas("X:/Tapper Liver DOD/Member Files/liver_member_fixed.sas7bdat") 
 Patid_total = unique(liver_member_fixed$Patid)
 '%!in%' = Negate('%in%')
-Patid_total = Patid_total[Patid_total %!in% Exclude_coverage_patid & Patid_total %!in% Exclude_Bleeding_patid & Patid_total %!in% Exclude_HCC_patid & Patid_total %!in% Exclude_Transplant_patid & Patid_total %in% GI_first_date$Patid]
+Patid_total = Patid_total[Patid_total %!in% Exclude_coverage_patid & Patid_total %!in% Exclude_Bleeding_patid & 
+                            Patid_total %!in% Exclude_HCC_patid & Patid_total %!in% Exclude_Transplant_patid & Patid_total %in% GI_first_date$Patid]
 
 # get the data (def) for the patids above for one year after first GI
 load("Flux_temp.RData")
@@ -158,5 +159,16 @@ for (year in 2001:2015){
   rm(med, name, year) 
   gc()
 } 
+
+GI_providerID = GI_providerID %>% 
+  arrange(Patid, Fst_Dt) %>% 
+  group_by(Patid) %>% 
+  summarise(Gastro_ID = first(Provider))
+
+data_total = merge(data_total, GI_providerID, by = "Patid", all.x = T)
+
+
+
+
 
 
