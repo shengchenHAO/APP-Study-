@@ -59,7 +59,27 @@ Patid_total = unique(liver_member_fixed$Patid)
 '%!in%' = Negate('%in%')
 Patid_total = Patid_total[Patid_total %!in% Exclude_coverage_patid & Patid_total %!in% Exclude_Bleeding_patid & Patid_total %!in% Exclude_HCC_patid & Patid_total %!in% Exclude_Transplant_patid & Patid_total %in% GI_first_date$Patid]
 
-# DATA CONSTRUCTING 
+# get the data (def) for the patids above for one year after first GI
+load("Flux_temp.RData")
+data_total = data.frame()
+for (year in 2001:2015){ # Run in FLUX
+  name = paste0("data_def_", year, ".RData")
+  load(name)
+  
+  temp_data = filter(temp_data, Patid %in% Patid_total)
+  temp_data = merge(temp_data, GI_first_date, by = "Patid", all.x = T)
+  temp_data = filter(temp_data, Fst_Dt >= GI_first_date & Fst_Dt <= GI_first_date + 365)
+  data_total = rbind(data_total, temp_data)
+  
+  rm(temp_data,name,year)
+  gc()
+}
+save(data_total, file = "one_year_data.RData")
+
+
+
+# DATA CONSTRUCTING ------------------------------------------------------------------------
+# Combine the Diag codes by Patid and Fst_Dt
 # medical
 for (year in 2001:2015){
   name = paste0("X:/Shengchen Hao/Tapper Liver/Medical Files/liver_med_", year, ".sas7bdat") 
@@ -119,6 +139,24 @@ for (year in 2001:2015){
   rm(temp_data,name,year) 
   gc()
 }
+# -----------------------------------------------------------------------------------------
 
+liver_provider = read_sas("X:/Shengchen Hao/Tapper Liver/Miscellaneous Files/liver_provider.sas7bdat")
+code = "207RG0100X|207RI0008X|207RT0003X"
+Gastro_id = unique(filter(liver_provider, grepl(code, Taxonomy1)|grepl(code, Taxonomy2))$Prov)
+rm(liver_provider, code)
+
+GI_providerID = data.frame()
+for (year in 2001:2015){
+  name = paste0("X:/Shengchen Hao/Tapper Liver/Medical Files/liver_med_", year, ".sas7bdat") 
+  med = read_sas(name)  
+  
+  med =select(med, Patid, Dstatus, Fst_Dt, Pos, Proc_Cd, Prov)
+  colnames(med) = c("Patid", "Dstatus", "Fst_Dt", "Position", "Proc", "Provider")
+  GI_providerID = rbind(GI_providerID, select(filter(med, Provider %in% Gastro_id), Patid, Fst_Dt, Provider))
+ 
+  rm(med, name, year) 
+  gc()
+} 
 
 
