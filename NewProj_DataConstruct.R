@@ -145,30 +145,128 @@ for (year in 2001:2015){
 liver_provider = read_sas("X:/Shengchen Hao/Tapper Liver/Miscellaneous Files/liver_provider.sas7bdat")
 code = "207RG0100X|207RI0008X|207RT0003X"
 Gastro_id = unique(filter(liver_provider, grepl(code, Taxonomy1)|grepl(code, Taxonomy2))$Prov)
+Gastro_unique_ID = select(filter(liver_provider, Prov %in% Gastro_id), Prov_Unique, Prov)
 rm(liver_provider, code)
 
-GI_providerID = data.frame()
+GI_provider = data.frame()
 for (year in 2001:2015){
   name = paste0("X:/Shengchen Hao/Tapper Liver/Medical Files/liver_med_", year, ".sas7bdat") 
   med = read_sas(name)  
   
   med =select(med, Patid, Dstatus, Fst_Dt, Pos, Proc_Cd, Prov)
   colnames(med) = c("Patid", "Dstatus", "Fst_Dt", "Position", "Proc", "Provider")
-  GI_providerID = rbind(GI_providerID, select(filter(med, Provider %in% Gastro_id), Patid, Fst_Dt, Provider))
+  GI_provider = rbind(GI_provider, select(filter(med, Provider %in% Gastro_id), Patid, Fst_Dt, Provider))
  
   rm(med, name, year) 
   gc()
 } 
+save(GI_provider, file = "GI_History.RData")
 
-GI_providerID = GI_providerID %>% 
+GI_providerID = GI_provider %>% 
+  distinct() %>%
   arrange(Patid, Fst_Dt) %>% 
   group_by(Patid) %>% 
   summarise(Gastro_ID = first(Provider))
+save(GI_providerID, file = "GI_ID.RData")
 
+load("one_year_data.RData")
 data_total = merge(data_total, GI_providerID, by = "Patid", all.x = T)
+save(data_total, file = "data_with_GI.RData")
+
+# Delete the columns that not using ----------------------------------------------------------
+data_total$SBRT = NULL 
+data_total$TACE = NULL 
+data_total$RFA = NULL 
+data_total$partial_hep = NULL 
+data_total$liver_resection = NULL 
+data_total$Cryo = NULL
+data_total$Ablation = NULL 
+data_total$Paracentesis = NULL 
+data_total$Dialysis = NULL
+data_total$out_new = NULL 
+data_total$out_established = NULL
+data_total$Transplant_evaluation = NULL 
+data_total$inpatient_initial_care = NULL 
+data_total$inpatient_subsequent_care = NULL
+data_total$observation_initial_care = NULL
+data_total$observation_subsequent_care = NULL
+save(data_total, file = "one_year_data.RData")
+# ---------------------------------------------------------------------------------------------
+
+# Count the total number of patient seen by each GI -------------------------------------------
+
+GI_Included_ID = unique(data_total$Gastro_ID)
+GI_patient_num = GI_provider %>% 
+  dplyr::filter(Provider %in% GI_Included_ID) %>%
+  select(Patid, Provider) %>% 
+  merge(y = Gastro_unique_ID, by.x = "Provider", by.y = "Prov", all.x = T) %>%
+  group_by(Prov_Unique) %>% 
+  summarise(Patient_Num = n_distinct(Patid))
+  
+# ---------------------------------------------------------------------------------------------
+load("one_year_data.RData")
+
+outpatient = function(data){
+  temp = mutate(data, out_new = 1*(grepl("99201|99202|99203|99204|99205", Proc)), 
+                out_established = 1*(grepl("99211|99212|99213|99214|99215", Proc))
+                ) 
+  return(temp)
+} 
+inpatient = function(data){
+  temp = mutate(data, inpatient_initial_care = 1*(grepl("99221|99222|99223", Proc)), 
+                inpatient_subsequent_care = 1*(grepl("99231|99232|99233", Proc)), 
+                observation_initial_care = 1*(grepl("99218|99219|99220", Proc)), 
+                observation_subsequent_care = 1*(grepl("99224|99225|99226", Proc))
+  ) 
+  return(temp)
+} 
+
+Endoscopy = function(data){
+  temp = mutate(data, Endoscopy = 1*(
+    (grepl("^4516", Diag)|grepl("43200|43202|43204|43234|43235|43239|43243|43244|43255|43227|43204|43205|43251", Proc) | grepl("43204|43244|43243", Proc)) 
+    & (Fst_Dt <= TIPS_date|is.na(TIPS_date)) & (Fst_Dt <= Bleed_date|is.na(Bleed_date)) & 
+    (out_new == 1 | out_established == 1|(inpatient_initial_care == 0 & inpatient_subsequent_care == 0 & observation_initial_care == 0 & observation_subsequent_care == 0))
+    ))
+  
+  return(temp)
+}
+cancer_screen = function(data){
+  temp = mutate(data, CT = 1*(grepl("74177|74178|74160|74170", Proc) & (Fst_Dt < Cancer_Diag_Date | is.na(Cancer_Diag_Date))),
+                MRI = 1*(grepl("74183", Proc) & (Fst_Dt < Cancer_Diag_Date | is.na(Cancer_Diag_Date))), 
+                Ultrasound = 1*(grepl("76700|76705", Proc) & (Fst_Dt < Cancer_Diag_Date | is.na(Cancer_Diag_Date)))
+                ) 
+  return(temp)
+} 
+data_total = data_total %>% 
+  outpatient() %>% 
+  inpatient() %>% 
+  Endoscopy() %>% 
+  cancer_screen()
 
 
+AB_vaccine_patid = unique(filter(data_total, A_vaccine == 1 | B_vaccine == 1)$Patid)
+Screen_cancer_patid = unique(filter(data_total, CT == 1 | MRI == 1 | Ultrasound == 1)$Patid)
+Endoscopy_patid = unique(filter(data_total, Endoscopy == 1)$Patid)
+  
+data_total = mutate(data_total, GI_vaccine = 1*(Patid %in% AB_vaccine_patid), 
+                    GI_Screen = 1*(Patid %in% Screen_cancer_patid), 
+                    GI_Endoscopy = 1*(Patid %in% Endoscopy_patid)
+                    )
+data_total = mutate(data_total, High_Std = 1*(GI_Screen == 1 & GI_Endoscopy == 1))
 
-
-
-
+High_Std_num = data_total %>% 
+  select(Patid, Gastro_ID, High_Std) %>% 
+  filter(High_Std == 1) %>%
+  distinct() %>% 
+  group_by(Gastro_ID) %>% 
+  summarise(High_Std_num = n_distinct(Patid))
+  
+GI_patient_num = merge(GI_patient_num, High_Std_num, all.x = T, by.x = "Provider", by.y = "Gastro_ID")
+GI_patient_num = mutate(GI_patient_num, High_Std_num = ifelse(is.na(High_Std_num), 0, High_Std_num))
+GI_patient_num = mutate(GI_patient_num, Prop = High_Std_num/Patient_Num)
+  
+  
+plot(GI_patient_num$Patient_Num, GI_patient_num$Prop)
+  
+  
+  
