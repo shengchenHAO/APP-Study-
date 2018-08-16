@@ -314,4 +314,4 @@ ggplot(temp_plot, aes(x)) +
   xlab("Threshold") + ylab("Mean Survival Time")
 
 
-
+qplot(GI_patient_num$Prop) +stat_bin(binwidth = 0.05)
