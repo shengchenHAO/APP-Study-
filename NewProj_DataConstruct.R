@@ -59,7 +59,7 @@ Patid_total = unique(liver_member_fixed$Patid)
 '%!in%' = Negate('%in%')
 Patid_total = Patid_total[Patid_total %!in% Exclude_coverage_patid & Patid_total %!in% Exclude_Bleeding_patid & 
                             Patid_total %!in% Exclude_HCC_patid & Patid_total %!in% Exclude_Transplant_patid & Patid_total %in% GI_first_date$Patid]
-
+rm(liver_member_fixed)
 # get the data (def) for the patids above for one year after first GI
 load("Flux_temp.RData")
 data_total = data.frame()
@@ -169,7 +169,7 @@ GI_providerID = GI_provider %>%
   summarise(Gastro_ID = first(Provider))
 save(GI_providerID, file = "GI_ID.RData")
 
-load("one_year_data.RData")
+load("one_year_data.RData") # Run by Flux
 data_total = merge(data_total, GI_providerID, by = "Patid", all.x = T)
 save(data_total, file = "data_with_GI.RData")
 
@@ -204,6 +204,7 @@ GI_patient_num = GI_provider %>%
   summarise(Patient_Num = n_distinct(Patid))
   
 # ---------------------------------------------------------------------------------------------
+# Define new variables (not based on APP date)
 load("one_year_data.RData")
 
 outpatient = function(data){
@@ -243,6 +244,8 @@ data_total = data_total %>%
   Endoscopy() %>% 
   cancer_screen()
 
+save(data_total, file = "one_year_data.RData")
+#  ---------------------------------------------------------------------------------------------
 
 AB_vaccine_patid = unique(filter(data_total, A_vaccine == 1 | B_vaccine == 1)$Patid)
 Screen_cancer_patid = unique(filter(data_total, CT == 1 | MRI == 1 | Ultrasound == 1)$Patid)
@@ -252,21 +255,63 @@ data_total = mutate(data_total, GI_vaccine = 1*(Patid %in% AB_vaccine_patid),
                     GI_Screen = 1*(Patid %in% Screen_cancer_patid), 
                     GI_Endoscopy = 1*(Patid %in% Endoscopy_patid)
                     )
-data_total = mutate(data_total, High_Std = 1*(GI_Screen == 1 & GI_Endoscopy == 1))
+data_total = mutate(data_total, High_Std = 1*(GI_Screen == 1 & GI_Endoscopy == 1)) # High standard, may change 
+
+data_total = merge(x = data_total, y = Gastro_unique_ID, by.x = "Gastro_ID", by.y = "Prov", all.x = T) # run in flux
+data_total$Provider = NULL 
+save(data_total, file = "one_year_data.RData")
 
 High_Std_num = data_total %>% 
-  select(Patid, Gastro_ID, High_Std) %>% 
+  select(Patid, Prov_Unique, High_Std) %>% 
   filter(High_Std == 1) %>%
   distinct() %>% 
-  group_by(Gastro_ID) %>% 
+  group_by(Prov_Unique) %>% 
   summarise(High_Std_num = n_distinct(Patid))
+
+Patient_included_num = data_total %>% 
+  select(Patid, Prov_Unique) %>% 
+  group_by(Prov_Unique) %>% 
+  summarise(Patient_included_num = n_distinct(Patid))
   
-GI_patient_num = merge(GI_patient_num, High_Std_num, all.x = T, by.x = "Provider", by.y = "Gastro_ID")
+GI_patient_num = merge(GI_patient_num, High_Std_num, all.x = T, by = "Prov_Unique")
 GI_patient_num = mutate(GI_patient_num, High_Std_num = ifelse(is.na(High_Std_num), 0, High_Std_num))
-GI_patient_num = mutate(GI_patient_num, Prop = High_Std_num/Patient_Num)
-  
-  
-plot(GI_patient_num$Patient_Num, GI_patient_num$Prop)
-  
-  
-  
+GI_patient_num = merge(GI_patient_num, Patient_included_num, all.x = T, by = "Prov_Unique")
+GI_patient_num = mutate(GI_patient_num, Prop = High_Std_num/Patient_included_num) # this is the table for GI perspective
+
+
+#  ---------------------------------------------------------------------------------------------
+#  Create Table by Patid
+load("person_year.RData")
+load("GI_First_Date.RData")
+Patid_total = unique(data_total$Patid)
+Person_year = filter(Person_year, Patid %in% Patid_total)
+Person_year = merge(x = Person_year, y = GI_providerID, by = "Patid", all.x = T)  # Provider ID,but not unique
+Person_year = merge(x = Person_year, y = Gastro_unique_ID, by.x = "Gastro_ID", by.y = "Prov", all.x = T)  # merge the unique GI ID
+Person_year = merge(x= Person_year, y = GI_first_date, all.x = T, by = "Patid")  
+Person_year = mutate(Person_year, Survival_Time = Lst_Date - GI_first_date) # survival time is is last date - first GI date
+
+Mean_survival = Person_year %>% 
+  group_by(Prov_Unique) %>%
+  summarise(Mean_survival = mean(as.numeric(Survival_Time)))
+
+GI_patient_num = merge(GI_patient_num, Mean_survival, by = "Prov_Unique", all.x = T)
+
+library(ggplot2)
+qplot(x = Prop, y = Mean_survival, data = GI_patient_num)
+qplot(x = Patient_Num, y = Mean_survival, data = GI_patient_num, xlim = c(0, 1000))
+
+
+# T - Test 
+GI_patient_num = mutate(GI_patient_num, Experienced = 1*(Patient_Num >= 25))
+
+Experienced = sapply(c(1:400), function(Threshold){mean(filter(GI_patient_num, Patient_Num >= Threshold)$Mean_survival)})
+UnExperienced = sapply(c(1:400), function(Threshold){mean(filter(GI_patient_num, Patient_Num < Threshold)$Mean_survival)})
+temp_plot = data.frame(x = c(1:400), Experienced = Experienced, UnExperienced = UnExperienced)
+rm(Experienced,UnExperienced)
+ggplot(temp_plot, aes(x)) + 
+  geom_line(aes(y = Experienced, colour = "Experienced")) + 
+  geom_line(aes(y = UnExperienced, colour = "UnExperienced")) + 
+  xlab("Threshold") + ylab("Mean Survival Time")
+
+
+
