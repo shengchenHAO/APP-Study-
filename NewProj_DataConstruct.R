@@ -315,3 +315,7 @@ ggplot(temp_plot, aes(x)) +
 
 
 qplot(GI_patient_num$Prop) +stat_bin(binwidth = 0.05)
+save.image("data prepare.RData")
+
+
+

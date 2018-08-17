@@ -61,6 +61,26 @@ Person_year = mutate(Person_year, AC = 1*(Patid %in% AC_patid),
 
 rm(Mean_survival, Patient_included_num, liver_member_fixed, High_Std_num)
 
+table(Person_year$AC, Person_year$High_Std)
+table(Person_year$Hepatitis_C, Person_year$High_Std)
+table(Person_year$Non_alcohol, Person_year$High_Std)
+table(Person_year$Cirrhosis_complication, Person_year$High_Std)
+table(Person_year$HE, Person_year$High_Std)
+table(Person_year$Ascites, Person_year$High_Std)
+table(Person_year$Varices, Person_year$High_Std)
+table(Person_year$HCC, Person_year$High_Std)
+table(Person_year$Hepatology, Person_year$High_Std)
+
+
+temp = matrix(table(Person_year$Hepatology, Person_year$High_Std), nrow = 2)
+chisq.test(temp)
+
+summary(Person_year$Age)
+summary(filter(Person_year, High_Std == 1)$Age)
+summary(filter(Person_year, High_Std == 0)$Age)
+t.test(filter(Person_year, High_Std == 1)$Age, filter(Person_year, High_Std == 0)$Age)
+
+
 
 
 
