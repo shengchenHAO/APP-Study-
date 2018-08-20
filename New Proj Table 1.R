@@ -80,7 +80,8 @@ for (year in 2001:2015){
 
 
 Person_year = mutate(Person_year, AC = 1*(Patid %in% AC_patid), 
-                     Hepatitis_C = 1*(Patid %in% Hepatitis_C_patid), 
+                     Hepatitis_C = 1*(Patid %in% Hepatitis_C_patid),
+                     Hepatitis_B = 1*(Patid %in% Hepatitis_B_patid),
                      Non_alcohol = 1*(Patid %in% Non_alcohol_patid), 
                      Cirrhosis_complication = 1*(Patid %in% Cirrhosis_complication_patid), 
                      HE = 1*(Patid %in% HE_patid), 
