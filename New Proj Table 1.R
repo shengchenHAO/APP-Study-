@@ -4,6 +4,8 @@ library(haven)
 library(dplyr) 
 library(stringr) 
 library(tidyr) 
+load("data prepare.RData")
+rm(AB_vaccine_patid, Endoscopy_patid, Screen_cancer_patid)
 
 Patid_High_Std = unique(filter(data_total, High_Std == 1)$Patid) 
 Person_year = mutate(Person_year, High_Std = 1*(Patid %in% Patid_High_Std))
@@ -55,7 +57,7 @@ Hepatology_patid = c(Hepatology_patid, unique(filter(data_total, Hepatology == 1
 # ---------------------------------------------------------------------------------------------------------------------------
 
 # count all the time 
-
+# run in flux
 for (year in 2001:2015){
   name = paste0("data_def_", year, ".RData")
   load(name) 
@@ -78,7 +80,7 @@ for (year in 2001:2015){
 
 # ---------------------------------------------------------------------------------------------------------------------------
 
-
+load("table1_patid.RData")
 Person_year = mutate(Person_year, AC = 1*(Patid %in% AC_patid), 
                      Hepatitis_C = 1*(Patid %in% Hepatitis_C_patid),
                      Hepatitis_B = 1*(Patid %in% Hepatitis_B_patid),
@@ -111,6 +113,7 @@ summary(filter(Person_year, High_Std == 1)$Age)
 summary(filter(Person_year, High_Std == 0)$Age)
 t.test(filter(Person_year, High_Std == 1)$Age, filter(Person_year, High_Std == 0)$Age)
 
+save.image("Table1_complete.RData")
 
 
 
