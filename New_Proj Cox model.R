@@ -7,6 +7,7 @@ library(survival)
 library(survminer)
 
 load("Table1_complete.RData")
+rm(data_total)
 
 Person_year = Person_year %>%
   mutate(Status = ifelse(Death_date != Lst_Date| is.na(Death_date), 1, 2)) %>% 
@@ -65,7 +66,6 @@ summary(res.cox)
 
 
 # Multivariate Cox-----------------------------------------------------------------------------------------------------------
-# Multivariate Cox
 res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race,
                  data = Person_year)
 x = data.frame(summary(res.cox)$conf.int)
@@ -78,3 +78,38 @@ write.csv(x, file = "multivariate cox.csv")
 rm(x, temp)
 
 # ----------------------------------------------------------------------------------------------------------------------------
+
+# competing risk -------------------------------------------------------------------------------------------------------------
+library(cmprsk2)
+Person_year = Person_year %>%
+  mutate(Status = ifelse(Death_date != Lst_Date| is.na(Death_date), 1, 2)) %>% 
+  mutate(Status = ifelse(is.na(Death_date) == F & Death_date <= Lst_Date + 90, 2, Status)) %>% 
+  mutate(Status = ifelse(is.na(Trans_Dt)==F, 3, Status))
+
+output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race,
+                data = Person_year)
+
+# death group
+x = summary.crr(output1$`CRR: 2`)
+x = data.frame(x$conf.int)
+x$exp..coef. = NULL 
+x$Var = rownames(x)
+x = mutate(x, lower..95 = round(X2.5., digits = 3), upper..95 = round(X97.5., digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
+x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
+x[,1:3] = NULL 
+x[, 2:3] = NULL
+write.csv(x, file = "competing risk.csv")
+
+# transplant group 
+x = summary.crr(output1$`CRR: 3`)
+x = data.frame(x$conf.int)
+x$exp..coef. = NULL 
+x$Var = rownames(x)
+x = mutate(x, lower..95 = round(X2.5., digits = 3), upper..95 = round(X97.5., digits = 3), exp.coef. = round(exp.coef., digits = 3)) 
+x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
+x[,1:3] = NULL 
+x[, 2:3] = NULL
+write.csv(x, file = "competing risk.csv")
+
+# ----------------------------------------------------------------------------------------------------------------------------
+save.image("COx model.RData")
