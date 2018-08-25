@@ -13,9 +13,9 @@ Person_year = Person_year %>%
   mutate(Status = ifelse(Death_date != Lst_Date| is.na(Death_date), 1, 2)) %>% 
   mutate(Status = ifelse(is.na(Death_date) == F & Death_date <= Lst_Date + 90, 2, Status)) %>% 
   mutate(time = Lst_Date - GI_first_date) %>% 
-  mutate(Sex = ifelse(Sex == "M", 1, ifelse(Sex == "F", 2, NA))) %>% 
   mutate(Race = ifelse(Race == "U"|Race == "", NA, Race)) # two kind of missing value in Race
   
+Person_year = mutate(Person_year, Sex = ifelse(Sex == "M", 1, ifelse(Sex == "F", 2, NA)))
 Person_year = mutate(Person_year, Race = ifelse(Race == "W", 1, ifelse(Race == "A",2, ifelse(Race == "B", 3, ifelse(Race == "H", 4, Race)))))
 Person_year$YEAR_OF_DEATH = NULL 
 Person_year$MONTH_OF_DEATH = NULL
@@ -31,7 +31,7 @@ Person_year = merge(Person_year, temp, by = "Prov_Unique", all.x = T)
 rm(temp)
 
 # Singel var cox model ---------------------------------------------------------------------------------------------------------
-covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced")
+covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced", "High_Std")
 univ_formulas <- sapply(covariates,
                         function(x) as.formula(paste('Surv(time, Status)~', x)))
 
@@ -62,11 +62,13 @@ rm(temp, univ_formulas, univ_models, univ_results)
 # Race univariate
 res.cox <- coxph(Surv(time, Status) ~ Race, data = Person_year)
 summary(res.cox)
+
+rm(res.cox, res)
 # ----------------------------------------------------------------------------------------------------------------------------
 
 
 # Multivariate Cox-----------------------------------------------------------------------------------------------------------
-res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race,
+res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+High_Std,
                  data = Person_year)
 x = data.frame(summary(res.cox)$conf.int)
 x$exp..coef. = NULL 
@@ -86,7 +88,7 @@ Person_year = Person_year %>%
   mutate(Status = ifelse(is.na(Death_date) == F & Death_date <= Lst_Date + 90, 2, Status)) %>% 
   mutate(Status = ifelse(is.na(Trans_Dt)==F, 3, Status))
 
-output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race,
+output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+High_Std,
                 data = Person_year)
 
 # death group
@@ -112,4 +114,4 @@ x[, 2:3] = NULL
 write.csv(x, file = "competing risk.csv")
 
 # ----------------------------------------------------------------------------------------------------------------------------
-save.image("COx model.RData")
+save.image("Cox model.RData")
