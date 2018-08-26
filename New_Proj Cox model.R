@@ -30,6 +30,18 @@ temp = select(GI_patient_num, Prov_Unique, Experienced)
 Person_year = merge(Person_year, temp, by = "Prov_Unique", all.x = T)
 rm(temp)
 
+# multi-level treatment variable (0/3, 1/3, 2/3, 3/3)
+load("data prepare.RData")
+rm(list=setdiff(ls(), "data_total"))
+data_total = data_total %>% 
+  mutate(Treatment = GI_vaccine+GI_Screen+GI_Endoscopy) 
+temp = data_total %>% 
+  select(Patid, Treatment) %>% 
+  distinct()
+rm(data_total)
+
+Person_year = merge(Person_year, temp, all.x = T, by = "Patid") 
+rm(temp)
 # Singel var cox model ---------------------------------------------------------------------------------------------------------
 covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced", "High_Std")
 univ_formulas <- sapply(covariates,
