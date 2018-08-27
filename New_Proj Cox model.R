@@ -43,7 +43,7 @@ rm(data_total)
 Person_year = merge(Person_year, temp, all.x = T, by = "Patid") 
 rm(temp)
 # Singel var cox model ---------------------------------------------------------------------------------------------------------
-covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced", "High_Std")
+covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced", "Treatment")
 univ_formulas <- sapply(covariates,
                         function(x) as.formula(paste('Surv(time, Status)~', x)))
 

@@ -149,7 +149,7 @@ Gastro_unique_ID = select(filter(liver_provider, Prov %in% Gastro_id), Prov_Uniq
 rm(liver_provider, code)
 
 GI_provider = data.frame()
-for (year in 2001:2015){
+for (year in 2001:2015){ # get the first GI's id from Medical data
   name = paste0("X:/Shengchen Hao/Tapper Liver/Medical Files/liver_med_", year, ".sas7bdat") 
   med = read_sas(name)  
   
