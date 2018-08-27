@@ -41,9 +41,10 @@ temp = data_total %>%
 rm(data_total)
 
 Person_year = merge(Person_year, temp, all.x = T, by = "Patid") 
+Person_year = mutate(Person_year, Treatment = as.factor(Treatment))
 rm(temp)
 # Singel var cox model ---------------------------------------------------------------------------------------------------------
-covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced", "Treatment")
+covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced")
 univ_formulas <- sapply(covariates,
                         function(x) as.formula(paste('Surv(time, Status)~', x)))
 
@@ -76,11 +77,16 @@ res.cox <- coxph(Surv(time, Status) ~ Race, data = Person_year)
 summary(res.cox)
 
 rm(res.cox, res)
+
+# Treatment as univariate
+res.cox <- coxph(Surv(time, Status) ~ Treatment, data = Person_year)
+summary(res.cox)
+rm(res.cox)
 # ----------------------------------------------------------------------------------------------------------------------------
 
 
 # Multivariate Cox-----------------------------------------------------------------------------------------------------------
-res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+High_Std,
+res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+Treatment,
                  data = Person_year)
 x = data.frame(summary(res.cox)$conf.int)
 x$exp..coef. = NULL 
@@ -89,7 +95,7 @@ x = mutate(x, lower..95 = round(lower..95, digits = 3), upper..95 = round(upper.
 x = mutate(x, result = paste0(exp.coef., " ", "(", lower..95, " ", upper..95,")")) 
 
 write.csv(x, file = "multivariate cox.csv")
-rm(x, temp)
+rm(x, temp, res.cox)
 
 # ----------------------------------------------------------------------------------------------------------------------------
 
@@ -100,7 +106,7 @@ Person_year = Person_year %>%
   mutate(Status = ifelse(is.na(Death_date) == F & Death_date <= Lst_Date + 90, 2, Status)) %>% 
   mutate(Status = ifelse(is.na(Trans_Dt)==F, 3, Status))
 
-output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+High_Std,
+output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+Treatment,
                 data = Person_year)
 
 # death group
