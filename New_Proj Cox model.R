@@ -6,8 +6,7 @@ library(tidyr)
 library(survival)
 library(survminer)
 
-load("Table1_complete.RData")
-rm(data_total)
+load("data prepare.RData")
 
 Person_year = Person_year %>%
   mutate(Status = ifelse(Death_date != Lst_Date| is.na(Death_date), 1, 2)) %>% 
@@ -31,7 +30,6 @@ Person_year = merge(Person_year, temp, by = "Prov_Unique", all.x = T)
 rm(temp)
 
 # multi-level treatment variable (0/3, 1/3, 2/3, 3/3)
-load("data prepare.RData")
 rm(list=setdiff(ls(), "data_total"))
 data_total = data_total %>% 
   mutate(Treatment = GI_vaccine+GI_Screen+GI_Endoscopy) 
