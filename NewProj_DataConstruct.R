@@ -3,7 +3,7 @@ library(haven)
 library(dplyr) 
 library(stringr) 
 library(tidyr) 
-
+library(coin) #Permutation test
 
 # FIRST EXCLUDE BASED ON CODE BOOK 
 GI_visit = data.frame()
@@ -317,5 +317,34 @@ ggplot(temp_plot, aes(x)) +
 qplot(GI_patient_num$Prop) +stat_bin(binwidth = 0.05)
 save.image("data prepare.RData")
 
+#  ---------------------------------------------------------------------------------------------
+# multi-level treatment variable (0/3, 1/3, 2/3, 3/3)
+data_total = data_total %>% 
+  mutate(Treatment = GI_vaccine+GI_Screen+GI_Endoscopy) 
+temp = data_total %>% 
+  select(Patid, Treatment) %>% 
+  distinct()
 
+Person_year = merge(Person_year, temp, all.x = T, by = "Patid") 
+rm(temp)
 
+High_quality = Person_year %>% 
+  group_by(Prov_Unique) %>% 
+  summarise(Quality_measure = sum(Treatment)/3) %>% 
+  merge(y = select(GI_patient_num, Prov_Unique, Patient_Num, Patient_included_num), by.x = "Prov_Unique", by.y = "Prov_Unique", all.x = T) %>%
+  mutate(Quality_measure = Quality_measure/Patient_included_num)
+# Quality measure
+qplot(High_quality$Quality_measure) +stat_bin(binwidth = 0.01)
+qplot(y = sort(High_quality$Quality_measure)) + ylab("Quality")
+summary(High_quality$Quality_measure)
+summary(filter(High_quality, Patient_Num >= 25)$Quality_measure)
+
+temp = select(High_quality, Patient_Num, Quality_measure)
+temp = mutate(temp, Exp = 1*(Patient_Num >= 25))
+independence_test(Quality_measure ~ Exp, data = temp)
+rm(temp)
+
+# GI volume 
+qplot(filter(High_quality, Patient_Num >= 25 & Patient_Num <= 700)$Patient_Num, binwidth = 5) + xlab("Number of Patient visit(GI volume)")
+qplot(y = sort(High_quality$Patient_Num)) + ylab("GI Volume") + xlab("GIs")
+summary(filter(High_quality, Patient_Num >= 25)$Patient_Num)
