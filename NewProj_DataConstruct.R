@@ -315,7 +315,7 @@ ggplot(temp_plot, aes(x)) +
 
 
 qplot(GI_patient_num$Prop) +stat_bin(binwidth = 0.05)
-save.image("data prepare.RData")
+
 
 #  ---------------------------------------------------------------------------------------------
 # multi-level treatment variable (0/3, 1/3, 2/3, 3/3)
@@ -348,3 +348,6 @@ rm(temp)
 qplot(filter(High_quality, Patient_Num >= 25 & Patient_Num <= 700)$Patient_Num, binwidth = 5) + xlab("Number of Patient visit(GI volume)")
 qplot(y = sort(High_quality$Patient_Num)) + ylab("GI Volume") + xlab("GIs")
 summary(filter(High_quality, Patient_Num >= 25)$Patient_Num)
+
+#  ---------------------------------------------------------------------------------------------
+save.image("data prepare.RData")

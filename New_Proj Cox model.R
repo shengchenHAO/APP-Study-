@@ -7,6 +7,40 @@ library(survival)
 library(survminer)
 
 load("data prepare.RData")
+rm(GI_provider, GI_providerID, High_Std_num, GI_first_date,Mean_survival, Patient_included_num)
+
+
+# Person year construct ---------------------------------------------------------------------------------------------------------
+Person_year = merge(Person_year, High_quality, by = "Prov_Unique", all.x = T)
+
+liver_member_fixed = read_sas("X:/Tapper Liver DOD/Member Files/liver_member_fixed.sas7bdat") 
+temp = select(liver_member_fixed, Patid, Race, Gdr_Cd)
+temp = distinct(temp) %>% 
+  arrange(Patid, Gdr_Cd, Race) %>% 
+  group_by(Patid) %>% 
+  summarise(Race = first(Race), 
+            Sex = first(Gdr_Cd))
+
+Person_year = merge(Person_year, temp, by = "Patid", all.x = T)
+rm(temp, liver_member_fixed)
+
+# Charlson Index 
+load("charlson index.RData")
+index = dplyr::select(charlson9, Patid, index)
+Person_year = merge(Person_year, index, by = "Patid", all.x = T)
+rm(index, charlson9)
+
+load("table1_patid.RData")
+Person_year = mutate(Person_year, AC = 1*(Patid %in% AC_patid), 
+                     Hepatitis_C = 1*(Patid %in% Hepatitis_C_patid),
+                     Hepatitis_B = 1*(Patid %in% Hepatitis_B_patid),
+                     Non_alcohol = 1*(Patid %in% Non_alcohol_patid), 
+                     Cirrhosis_complication = 1*(Patid %in% Cirrhosis_complication_patid), 
+                     HE = 1*(Patid %in% HE_patid), 
+                     Ascites = 1*(Patid %in% Ascites_patid), 
+                     Varices = 1*(Patid %in% Varices_patid), 
+                     HCC = 1*(Patid %in% HCC_patid), 
+                     Hepatology = 1*(Patid %in% Hepatology_patid))
 
 Person_year = Person_year %>%
   mutate(Status = ifelse(Death_date != Lst_Date| is.na(Death_date), 1, 2)) %>% 
@@ -19,30 +53,26 @@ Person_year = mutate(Person_year, Race = ifelse(Race == "W", 1, ifelse(Race == "
 Person_year$YEAR_OF_DEATH = NULL 
 Person_year$MONTH_OF_DEATH = NULL
 
+# Charlson score
 load("charlson index.RData")
 temp = select(charlson9, Patid, wscore)
 colnames(temp) = c("Patid", "score")
 Person_year = merge(Person_year, temp, by = "Patid", all.x = T)
 rm(temp, charlson9)
 
-temp = select(GI_patient_num, Prov_Unique, Experienced)
-Person_year = merge(Person_year, temp, by = "Prov_Unique", all.x = T)
-rm(temp)
+# Experienced level 
+Person_year = mutate(Person_year, Exp_level = ifelse(Patient_Num >=25 & Patient_Num <=36, 1, 
+                                                     ifelse(Patient_Num >=37 & Patient_Num <=55,2,
+                                                            ifelse(Patient_Num >=56 & Patient_Num <=94,3,
+                                                                   ifelse(Patient_Num >=95, 4, 0)))))
 
-# multi-level treatment variable (0/3, 1/3, 2/3, 3/3)
-rm(list=setdiff(ls(), "data_total"))
-data_total = data_total %>% 
-  mutate(Treatment = GI_vaccine+GI_Screen+GI_Endoscopy) 
-temp = data_total %>% 
-  select(Patid, Treatment) %>% 
-  distinct()
-rm(data_total)
+Person_year = mutate(Person_year, Quality_measure = signif(Quality_measure, digits = 3))
 
-Person_year = merge(Person_year, temp, all.x = T, by = "Patid") 
-Person_year = mutate(Person_year, Treatment = as.factor(Treatment))
-rm(temp)
+Person_year = mutate(Person_year, Treatment = as.factor(Treatment), 
+                     Exp_level = as.factor(Exp_level))
+
 # Singel var cox model ---------------------------------------------------------------------------------------------------------
-covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology", "Experienced")
+covariates <- c("Age", "Sex", "score", "AC", "Hepatitis_C", "Non_alcohol", "Ascites", "Varices", "HE", "HCC", "Hepatology")
 univ_formulas <- sapply(covariates,
                         function(x) as.formula(paste('Surv(time, Status)~', x)))
 
@@ -80,12 +110,22 @@ rm(res.cox, res)
 res.cox <- coxph(Surv(time, Status) ~ Treatment, data = Person_year)
 summary(res.cox)
 rm(res.cox)
+# Experience level as univariate
+res.cox <- coxph(Surv(time, Status) ~ Exp_level, data = Person_year)
+summary(res.cox)
+rm(res.cox)
+
+# Experience level as univariate
+res.cox <- coxph(Surv(time, Status) ~ Quality_measure, data = Person_year)
+summary(res.cox)
+rm(res.cox)
 # ----------------------------------------------------------------------------------------------------------------------------
 
 
 # Multivariate Cox-----------------------------------------------------------------------------------------------------------
-res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+Treatment,
+res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Exp_level+score+Race+Treatment+Exp_level+Quality_measure,
                  data = Person_year)
+
 x = data.frame(summary(res.cox)$conf.int)
 x$exp..coef. = NULL 
 x$Var = rownames(x)
@@ -104,7 +144,7 @@ Person_year = Person_year %>%
   mutate(Status = ifelse(is.na(Death_date) == F & Death_date <= Lst_Date + 90, 2, Status)) %>% 
   mutate(Status = ifelse(is.na(Trans_Dt)==F, 3, Status))
 
-output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Experienced+score+Race+Treatment,
+output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Exp_level+score+Race+Treatment+Exp_level+Quality_measure,
                 data = Person_year)
 
 # death group
