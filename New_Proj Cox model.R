@@ -123,7 +123,7 @@ rm(res.cox)
 
 
 # Multivariate Cox-----------------------------------------------------------------------------------------------------------
-res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Exp_level+score+Race+Treatment+Exp_level+Quality_measure,
+res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+score+Race+Treatment+Exp_level+Quality_measure,
                  data = Person_year)
 
 x = data.frame(summary(res.cox)$conf.int)
@@ -144,7 +144,7 @@ Person_year = Person_year %>%
   mutate(Status = ifelse(is.na(Death_date) == F & Death_date <= Lst_Date + 90, 2, Status)) %>% 
   mutate(Status = ifelse(is.na(Trans_Dt)==F, 3, Status))
 
-output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+Exp_level+score+Race+Treatment+Exp_level+Quality_measure,
+output1 <- crr2(Surv(time, Status(1)== 2) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+Hepatology+score+Race+Treatment+Exp_level+Quality_measure,
                 data = Person_year)
 
 # death group
