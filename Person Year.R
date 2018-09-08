@@ -5,7 +5,7 @@ library(dplyr)
 library(stringr) 
 library(tidyr) 
 
-
+##
 # death date based on member data 
 liver_member_fixed = read_sas("X:/Tapper Liver DOD/Member Files/liver_member_fixed.sas7bdat") 
 death_date =distinct(select(liver_member_fixed, Patid, YEAR_OF_DEATH, MONTH_OF_DEATH)) 
