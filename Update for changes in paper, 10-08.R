@@ -162,10 +162,10 @@ rm(x, temp)
 
 # APP as time varying variable 
 
-table2 = mutate(table2, APP_Cirrhosis = as.numeric(APP_Dt - LIVER_DT),
-                time = Person_year*365)
+table2 = mutate(table2, APP_Cirrhosis = round(as.numeric(APP_Dt - LIVER_DT)/30),
+                time = as.numeric(Lst_Date - LIVER_DT))
 
-res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+APP+Gastro_only+Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit+Shared_visit+APP_Cirrhosis,
+res.cox <- coxph(Surv(time, Status) ~ Age+Sex+score+AC+Hepatitis_C+Non_alcohol+Ascites+Varices+HE+HCC+APP+Gastro_only+Hepatology+SBP+TIPS+Race+APP_Gastro+APP_Hepatology+Pneumonia+Sepsis+Urinary_tract_infection+Cellulitis+Bacteremia+Clostridium+Cholangitis+Paracentesis+Dialysis+max_visit+Shared_visit+Cirr_before_APP+APP_Cirrhosis,
                  data = filter(table2, is.na(APP_Dt) == F & APP_Dt > LIVER_DT))
 x = data.frame(summary(res.cox)$conf.int)
 x$exp..coef. = NULL 
